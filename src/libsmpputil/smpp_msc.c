@@ -297,6 +297,12 @@ int handle_smpp_submit(struct smpp_esme *esme, struct submit_sm_t *submit,
 
 	switch (submit->esm_class & SMPP34_MSG_MODE_MASK) {
 	case 0: /* default */
+		LOGP(DLSMS, LOGL_DEBUG, "SMPP SUBMIT-SM (RAW): Forwarding in "
+			"real time (Transaction/Forward mode)\n");
+		sms->smpp.transaction_mode = 1;
+		gsm411_send_raw_sms(net, sms->receiver, sms);
+		rc = 1; /* don't send any response yet */
+		break;
 	case 1: /* datagram */
 	case 3: /* store-and-forward */
 		rc = db_sms_store(sms);

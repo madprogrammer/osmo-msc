@@ -25,6 +25,11 @@ struct gsm_sms *sms_from_text(struct vlr_subscr *receiver,
 int gsm411_send_sms(struct gsm_network *net,
 		    struct vlr_subscr *vsub,
 		    struct gsm_sms *sms);
+
+int gsm411_send_raw_sms(struct gsm_network *net,
+		    struct vlr_subscr *vsub,
+		    struct gsm_sms *sms);
+
 int gsm411_send_rp_data(struct gsm_network *net, struct vlr_subscr *vsub,
 			size_t sm_rp_oa_len, const uint8_t *sm_rp_oa,
 			size_t sm_rp_ud_len, const uint8_t *sm_rp_ud,

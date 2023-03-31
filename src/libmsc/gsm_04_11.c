@@ -1226,6 +1226,49 @@ int gsm411_send_sms(struct gsm_network *net,
 		GSM411_SM_RL_DATA_REQ);
 }
 
+/* High-level function to send a raw SMS to a given subscriber */
+int gsm411_send_raw_sms(struct gsm_network *net,
+		    struct vlr_subscr *vsub,
+		    struct gsm_sms *sms)
+{
+	uint8_t *data;
+	struct gsm_trans *trans;
+	struct msgb *msg;
+
+	/* Allocate a new transaction for MT SMS */
+	trans = gsm411_alloc_mt_trans(net, vsub);
+	if (!trans) {
+		send_signal(S_SMS_UNKNOWN_ERROR, NULL, sms, 0);
+		sms_free(sms);
+		return -ENOMEM;
+	}
+
+	/* Allocate a message buffer for to be encoded SMS */
+	msg = gsm411_msgb_alloc();
+	if (!msg) {
+		send_signal(S_SMS_UNKNOWN_ERROR, NULL, sms, 0);
+		trans_free(trans);
+		sms_free(sms);
+		return -ENOMEM;
+	}
+
+	/* Hardcode SMSC Originating Address for now */
+	int msg_len = OSMO_MIN(sms->user_data_len, sizeof(sms->user_data));
+
+	data = (uint8_t *)msgb_put(msg, msg_len);
+	memcpy(data, sms->user_data, msg_len);
+
+	/* Store a pointer to abstract SMS representation */
+	trans->sms.sms = sms;
+
+	rate_ctr_inc(rate_ctr_group_get_ctr(net->msc_ctrs, MSC_CTR_SMS_DELIVERED));
+	db_sms_inc_deliver_attempts(trans->sms.sms);
+
+	return gsm411_rp_sendmsg(&trans->sms.smr_inst, msg,
+		GSM411_MT_RP_DATA_MT, trans->sms.sm_rp_mr,
+		GSM411_SM_RL_DATA_REQ);
+}
+
 /* Low-level function to send raw RP-DATA to a given subscriber */
 int gsm411_send_rp_data(struct gsm_network *net, struct vlr_subscr *vsub,
 			size_t sm_rp_oa_len, const uint8_t *sm_rp_oa,
